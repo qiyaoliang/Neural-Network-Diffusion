@@ -111,13 +111,11 @@ hydra:
   overrides:
     hydra:
     - hydra.mode=RUN
-    task:
-    - task=cognitive
-    - system=ddpm
+    task: []
   job:
-    name: train_p_diff
+    name: task_training
     chdir: null
-    override_dirname: system=ddpm,task=cognitive
+    override_dirname: ''
     id: ???
     num: ???
     config_name: base
