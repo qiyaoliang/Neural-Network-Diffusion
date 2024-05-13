@@ -1,0 +1,212 @@
+cfg:
+  task:
+    name: cognitive
+    data:
+      data_root: data/cognitive
+      dataset: cognitive
+      batch_size: 32
+      num_workers: 1
+      task: dm1
+      act_dim: 17
+      seq_len: 20
+    model:
+      _target_: models.rnn.RNNNet
+      hidden_size: 32
+    optimizer:
+      _target_: torch.optim.SGD
+      lr: 0.001
+    epoch: 35000
+    test_batch: 20
+    save_num_model: 300
+    train_layer: all
+    param:
+      data_root: /om2/user/annhuang/NND/data.pt
+      ckpt_path: /om2/user/annhuang/20CogTasks/dm1/models
+      perf_path: /om2/user/annhuang/20CogTasks/dm1/logs
+      ckpt_name: hidden_32_seed_*_epoch_*.pt
+      final_path: /om2/user/annhuang/NND/
+      k: 320
+      num_workers: 4
+      seeds:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      model: CTRNN
+      obs_size: 34
+      act_size: 17
+      hidden_size: 32
+      dt: 0.1
+  system:
+    name: vae
+    model:
+      arch:
+        _target_: core.module.modules.odvae.medium
+        in_dim: 2737
+        latent_dim: 12
+        kld_weight: 0.005
+      data_transform: null
+    train:
+      optimizer:
+        _target_: torch.optim.AdamW
+        lr: 0.001
+        weight_decay: 2.0e-06
+      lr_scheduler: null
+      loss_func:
+        _target_: torch.nn.MSELoss
+        reduction: sum
+      trainer:
+        _target_: pytorch_lightning.trainer.Trainer
+        strategy: auto
+        max_epochs: 30000
+        check_val_every_n_epoch: null
+        val_check_interval: 3000
+        log_every_n_steps: 1
+        limit_val_batches: 1
+        limit_test_batches: 1
+        devices:
+        - 0
+        enable_model_summary: false
+        callbacks:
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          dirpath: outputs/cognitive/vae/2024-05-13-15-20-42/checkpoints
+          filename: '{epoch}-{loss:.4f}'
+          monitor: loss
+          mode: min
+          save_top_k: 2
+          save_last: true
+          verbose: true
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          dirpath: outputs/cognitive/vae/2024-05-13-15-20-42/checkpoints
+          filename: '{epoch}-{ae_acc:.4f}'
+          monitor: vae_acc
+          mode: max
+          save_top_k: 2
+          save_last: false
+          verbose: true
+        logger:
+          _target_: pytorch_lightning.loggers.TensorBoardLogger
+          save_dir: outputs/cognitive/vae/2024-05-13-15-20-42/tensorboard
+          name: .
+          version: .
+  device:
+    cuda_visible_devices: '0'
+    id: 0
+    cuda: cuda:0
+  load_system_checkpoint: null
+  mode: train
+  seed: 42
+  process_title: p-diff
+  output_dir: outputs/cognitive
+config:
+  task:
+    name: cognitive
+    data:
+      data_root: data/cognitive
+      dataset: cognitive
+      batch_size: 32
+      num_workers: 1
+      task: dm1
+      act_dim: 17
+      seq_len: 20
+    model:
+      _target_: models.rnn.RNNNet
+      hidden_size: 32
+    optimizer:
+      _target_: torch.optim.SGD
+      lr: 0.001
+    epoch: 35000
+    test_batch: 20
+    save_num_model: 300
+    train_layer: all
+    param:
+      data_root: /om2/user/annhuang/NND/data.pt
+      ckpt_path: /om2/user/annhuang/20CogTasks/dm1/models
+      perf_path: /om2/user/annhuang/20CogTasks/dm1/logs
+      ckpt_name: hidden_32_seed_*_epoch_*.pt
+      final_path: /om2/user/annhuang/NND/
+      k: 320
+      num_workers: 4
+      seeds:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      model: CTRNN
+      obs_size: 34
+      act_size: 17
+      hidden_size: 32
+      dt: 0.1
+  system:
+    name: vae
+    model:
+      arch:
+        _target_: core.module.modules.odvae.medium
+        in_dim: 2737
+        latent_dim: 12
+        kld_weight: 0.005
+      data_transform: null
+    train:
+      optimizer:
+        _target_: torch.optim.AdamW
+        lr: 0.001
+        weight_decay: 2.0e-06
+      lr_scheduler: null
+      loss_func:
+        _target_: torch.nn.MSELoss
+        reduction: sum
+      trainer:
+        _target_: pytorch_lightning.trainer.Trainer
+        strategy: auto
+        max_epochs: 30000
+        check_val_every_n_epoch: null
+        val_check_interval: 3000
+        log_every_n_steps: 1
+        limit_val_batches: 1
+        limit_test_batches: 1
+        devices:
+        - 0
+        enable_model_summary: false
+        callbacks:
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          dirpath: outputs/cognitive/vae/2024-05-13-15-20-42/checkpoints
+          filename: '{epoch}-{loss:.4f}'
+          monitor: loss
+          mode: min
+          save_top_k: 2
+          save_last: true
+          verbose: true
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          dirpath: outputs/cognitive/vae/2024-05-13-15-20-42/checkpoints
+          filename: '{epoch}-{ae_acc:.4f}'
+          monitor: vae_acc
+          mode: max
+          save_top_k: 2
+          save_last: false
+          verbose: true
+        logger:
+          _target_: pytorch_lightning.loggers.TensorBoardLogger
+          save_dir: outputs/cognitive/vae/2024-05-13-15-20-42/tensorboard
+          name: .
+          version: .
+  device:
+    cuda_visible_devices: '0'
+    id: 0
+    cuda: cuda:0
+  load_system_checkpoint: null
+  mode: train
+  seed: 42
+  process_title: p-diff
+  output_dir: outputs/cognitive

@@ -1,0 +1,236 @@
+cfg:
+  task:
+    name: cognitive
+    data:
+      data_root: data/cognitive
+      dataset: cognitive
+      batch_size: 32
+      num_workers: 1
+      task: dm1
+      act_dim: 17
+      seq_len: 20
+    model:
+      _target_: models.rnn.RNNNet
+      hidden_size: 32
+    optimizer:
+      _target_: torch.optim.SGD
+      lr: 0.001
+    epoch: 35000
+    test_batch: 20
+    save_num_model: 300
+    train_layer: all
+    param:
+      data_root: /om2/user/annhuang/NND/data.pt
+      ckpt_path: /om2/user/annhuang/20CogTasks/dm1/models
+      perf_path: /om2/user/annhuang/20CogTasks/dm1/logs
+      ckpt_name: hidden_32_seed_*_epoch_*.pt
+      final_path: /om2/user/annhuang/NND/
+      k: 320
+      num_workers: 4
+      seeds:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      model: CTRNN
+      obs_size: 34
+      act_size: 17
+      hidden_size: 32
+      dt: 0.1
+  system:
+    name: ae_ddpm
+    ae_model:
+      _target_: core.module.modules.encoder.medium
+      in_dim: 2048
+      input_noise_factor: 0.001
+      latent_noise_factor: 0.5
+    model:
+      arch:
+        _target_: core.module.wrapper.ema.EMA
+        model:
+          _target_: core.module.modules.unet.AE_CNN_bottleneck
+          in_channel: 1
+          in_dim: 12
+    beta_schedule:
+      start: 0.0001
+      end: 0.02
+      schedule: linear
+      n_timestep: 1000
+    model_mean_type: eps
+    model_var_type: fixedlarge
+    loss_type: mse
+    train:
+      split_epoch: 30000
+      optimizer:
+        _target_: torch.optim.AdamW
+        lr: 0.001
+        weight_decay: 2.0e-06
+      ae_optimizer:
+        _target_: torch.optim.AdamW
+        lr: 0.001
+        weight_decay: 2.0e-06
+      lr_scheduler: null
+      trainer:
+        _target_: pytorch_lightning.Trainer
+        _convert_: all
+        max_epochs: 60000
+        check_val_every_n_epoch: null
+        val_check_interval: 3000
+        log_every_n_steps: 10
+        limit_val_batches: 1
+        limit_test_batches: 1
+        devices:
+        - 0
+        enable_model_summary: false
+        callbacks:
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          monitor: best_g_acc
+          mode: max
+          save_top_k: 1
+          save_last: true
+          filename: ddpm-{epoch}-{best_g_acc:.4f}
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          filename: ae-{epoch}-{ae_acc:.4f}
+          monitor: ae_acc
+          mode: max
+          save_top_k: 1
+          save_last: false
+          verbose: true
+        logger:
+          _target_: pytorch_lightning.loggers.TensorBoardLogger
+          save_dir: outputs/cognitive/ae_ddpm/
+          name: .
+          version: .
+  device:
+    cuda_visible_devices: '0'
+    id: 0
+    cuda: cuda:0
+  load_system_checkpoint: null
+  mode: train
+  seed: 42
+  process_title: p-diff
+  output_dir: outputs/cognitive
+config:
+  task:
+    name: cognitive
+    data:
+      data_root: data/cognitive
+      dataset: cognitive
+      batch_size: 32
+      num_workers: 1
+      task: dm1
+      act_dim: 17
+      seq_len: 20
+    model:
+      _target_: models.rnn.RNNNet
+      hidden_size: 32
+    optimizer:
+      _target_: torch.optim.SGD
+      lr: 0.001
+    epoch: 35000
+    test_batch: 20
+    save_num_model: 300
+    train_layer: all
+    param:
+      data_root: /om2/user/annhuang/NND/data.pt
+      ckpt_path: /om2/user/annhuang/20CogTasks/dm1/models
+      perf_path: /om2/user/annhuang/20CogTasks/dm1/logs
+      ckpt_name: hidden_32_seed_*_epoch_*.pt
+      final_path: /om2/user/annhuang/NND/
+      k: 320
+      num_workers: 4
+      seeds:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      model: CTRNN
+      obs_size: 34
+      act_size: 17
+      hidden_size: 32
+      dt: 0.1
+  system:
+    name: ae_ddpm
+    ae_model:
+      _target_: core.module.modules.encoder.medium
+      in_dim: 2048
+      input_noise_factor: 0.001
+      latent_noise_factor: 0.5
+    model:
+      arch:
+        _target_: core.module.wrapper.ema.EMA
+        model:
+          _target_: core.module.modules.unet.AE_CNN_bottleneck
+          in_channel: 1
+          in_dim: 12
+    beta_schedule:
+      start: 0.0001
+      end: 0.02
+      schedule: linear
+      n_timestep: 1000
+    model_mean_type: eps
+    model_var_type: fixedlarge
+    loss_type: mse
+    train:
+      split_epoch: 30000
+      optimizer:
+        _target_: torch.optim.AdamW
+        lr: 0.001
+        weight_decay: 2.0e-06
+      ae_optimizer:
+        _target_: torch.optim.AdamW
+        lr: 0.001
+        weight_decay: 2.0e-06
+      lr_scheduler: null
+      trainer:
+        _target_: pytorch_lightning.Trainer
+        _convert_: all
+        max_epochs: 60000
+        check_val_every_n_epoch: null
+        val_check_interval: 3000
+        log_every_n_steps: 10
+        limit_val_batches: 1
+        limit_test_batches: 1
+        devices:
+        - 0
+        enable_model_summary: false
+        callbacks:
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          monitor: best_g_acc
+          mode: max
+          save_top_k: 1
+          save_last: true
+          filename: ddpm-{epoch}-{best_g_acc:.4f}
+        - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+          filename: ae-{epoch}-{ae_acc:.4f}
+          monitor: ae_acc
+          mode: max
+          save_top_k: 1
+          save_last: false
+          verbose: true
+        logger:
+          _target_: pytorch_lightning.loggers.TensorBoardLogger
+          save_dir: outputs/cognitive/ae_ddpm/
+          name: .
+          version: .
+  device:
+    cuda_visible_devices: '0'
+    id: 0
+    cuda: cuda:0
+  load_system_checkpoint: null
+  mode: train
+  seed: 42
+  process_title: p-diff
+  output_dir: outputs/cognitive
