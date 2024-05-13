@@ -12,6 +12,8 @@ from core.utils.ddpm import *
 from core.utils.utils import *
 from core.module.prelayer.latent_transformer import Param2Latent
 from .encoder import EncoderSystem
+torch.set_default_tensor_type(torch.FloatTensor)
+
 
 class DDPM(BaseSystem):
     def __init__(self, config, **kwargs):
@@ -59,7 +61,10 @@ class DDPM(BaseSystem):
     def generate(self, batch, num=10, history=False):
         model = self.model.ema if hasattr(self.model, 'ema') else self.model
         model.eval()
-        shape = (num, 1, batch.shape[1] * batch.shape[2])
+        if len(np.shape(batch)) == 2:
+            shape = (num, 1, batch.shape[1])
+        else:
+            shape = (num, 1, batch.shape[1] * batch.shape[2])
         sample = self.progressive_samples_fn_simple(
             model,
             shape,

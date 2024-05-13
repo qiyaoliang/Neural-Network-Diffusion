@@ -12,7 +12,9 @@ import scipy as scipy
 from scipy import sparse
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
-torch.set_default_tensor_type(torch.DoubleTensor)
+import pdb
+# torch.set_default_tensor_type(torch.DoubleTensor)
+torch.set_default_tensor_type(torch.FloatTensor)
 
 class CTRNN(nn.Module):
 
@@ -58,7 +60,7 @@ class CTRNN(nn.Module):
 
     def init_hidden(self, input):
         batch_size = input.shape[1]
-        return torch.zeros(batch_size, self.hidden_size).to(input.device)
+        return torch.zeros(batch_size, self.hidden_size).float().to(input.device)
 
     def recurrence(self, input, hidden):
         """Recurrence helper."""
@@ -119,7 +121,7 @@ def get_performance(net, env, num_trial=1000, device='cpu'):
         ob, gt = env.ob, env.gt
 
         ob = ob[:, np.newaxis, :]  # Add batch axis
-        inputs = torch.from_numpy(ob).type(torch.DoubleTensor).to(device)
+        inputs = torch.from_numpy(ob).float().to(device)
         
         action_pred, _ = net(inputs)
         action_pred = action_pred.detach().cpu().numpy()
@@ -141,7 +143,7 @@ def get_performance_proper(net, env, num_trial=1000, device='cpu'):
       ob, gt = env.ob, env.gt
 
       ob = ob[:, np.newaxis, :]  # Add batch axis
-      inputs = torch.from_numpy(ob).type(torch.DoubleTensor).to(device)
+      inputs = torch.from_numpy(ob).float().to(device)
 
       action_pred, _ = net(inputs)
       action_pred = action_pred.detach().cpu().numpy()

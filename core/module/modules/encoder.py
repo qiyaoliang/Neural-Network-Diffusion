@@ -7,6 +7,8 @@ import random
 import torch
 from torch import nn
 import torch.nn.functional as F
+torch.set_default_tensor_type(torch.FloatTensor)
+
 
 # one dimension convolutional encoder
 class ODEncoder(nn.Module):
@@ -49,7 +51,7 @@ class ODEncoder(nn.Module):
 
     def forward(self, x, **kwargs):
         for i, module in enumerate(self.encoder):
-            x = module(x)
+            x = module(x.float())
         return x
 
 

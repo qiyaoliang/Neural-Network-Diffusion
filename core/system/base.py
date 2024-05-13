@@ -10,6 +10,8 @@ from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 import types
 from core.tasks import tasks
+torch.set_default_tensor_type(torch.FloatTensor)
+
 
 class BaseSystem(pl.LightningModule, abc.ABC):
     def __init__(self, cfg):
@@ -47,8 +49,13 @@ class BaseSystem(pl.LightningModule, abc.ABC):
         return self.task.test_g_model(input)
 
     def training_step(self, batch, batch_idx, **kwargs):
+        # for name, param in self.model.named_parameters():
+        #     print(f'{name}: {param.dtype}')
+
+
         optimizer = self.optimizers()
         loss = self.forward(batch, **kwargs)
+        loss = loss.float()
         optimizer.zero_grad()
         self.manual_backward(loss)
         optimizer.step()

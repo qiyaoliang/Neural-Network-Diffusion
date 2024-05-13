@@ -8,6 +8,11 @@ from .base import DataBase
 from torch.utils.data import Dataset
 import warnings
 import os
+import sys
+
+sys.path.append('/home/annhuang/Neural-Network-Diffusion')
+from models.rnn import *
+
 
 class PData(DataBase):
     def __init__(self, cfg, **kwargs):
@@ -22,7 +27,14 @@ class PData(DataBase):
         # check the root is a directory or file
         if os.path.isfile(self.root):
             state = torch.load(self.root, map_location='cpu')
-            self.fix_model = state['model']
+            if self.cfg.model == 'CTRNN':
+                self.fix_model = RNNNet(input_size=self.cfg.obs_size, 
+                                        hidden_size=self.cfg.hidden_size, 
+                                        output_size=self.cfg.act_size,
+                                        dt=self.cfg.dt, mask = None)
+            else:
+                self.fix_model = state['model']
+
             self.fix_model.eval()
             self.fix_model.to('cpu')
             self.fix_model.requires_grad_(False)

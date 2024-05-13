@@ -13,6 +13,7 @@ import glob
 import omegaconf
 import json
 import pandas as pd
+import numpy as np
 
 from neurogym.wrappers import ScheduleEnvs
 from neurogym.utils.scheduler import RandomSchedule
@@ -25,9 +26,9 @@ from Mod_Cog.mod_cog_tasks import *
 class CogTask(BaseTask):
     def __init__(self, config, **kwargs):
         super(CogTask, self).__init__(config, **kwargs)
-        self.train_loader = self.task_data.train_dataset()
-        self.eval_loader = self.task_data.val_dataset()
-        self.test_loader = self.task_data.test_dataset()
+        self.train_loader = self.task_data.train_dataset
+        self.eval_loader = self.task_data.val_dataset
+        self.test_loader = self.task_data.test_dataset
 
     def init_task_data(self):
         return CognitiveData(self.cfg.data)
@@ -45,9 +46,68 @@ class CogTask(BaseTask):
         train_layer = self.train_layer
         param = input
         target_num = 0
-        for name, module in net.named_parameters():
-            if name in train_layer:
+        if train_layer == 'all':
+            for name, module in net.named_parameters():
                 target_num += torch.numel(module)
+        else:
+            for name, module in net.named_parameters():
+                if name in train_layer:
+                    target_num += torch.numel(module)
+        params_num = torch.squeeze(param).shape[0] 
+        # print(f'target num: {target_num}')
+        # print(f'params num: {params_num}')
+        assert (target_num == params_num)
+        param = torch.squeeze(param)
+        model = partial_reverse_tomodel(
+            param, net, train_layer).to(param.device)
+
+        model.eval()
+        test_loss = 0
+        correct = 0
+        total = 0
+
+        output_list = []
+        criterion = nn.CrossEntropyLoss()
+
+        with torch.no_grad():
+            for _ in range(self.cfg.test_batch):
+                data, target = self.test_loader()
+                data = torch.tensor(data).to(torch.float)
+                target = torch.tensor(target.flatten()).to(torch.int64)
+                data, target = data.cuda(), target.cuda()
+
+                for name, param in model.named_parameters():
+                    param = param.float()
+
+                output = model(data).to(torch.float)
+                # sum up batch loss
+                test_loss += criterion(output.view(-1, self.cfg.param.act_size), target)
+
+                total += data.shape[0]
+                pred = torch.max(output, -1)[1]
+                output_list += pred.cpu().numpy().tolist()
+                correct += pred.eq(target.view_as(pred)).sum().item()
+
+        test_loss /= total
+        acc = 100. * correct / total
+        print(f'Test accuracy: {acc}')
+        del model
+        return acc, test_loss, output_list
+
+
+
+    def val_g_model(self, input):
+        net = self.model
+        train_layer = self.train_layer
+        param = input
+        target_num = 0
+        if train_layer == 'all':
+            for name, module in net.named_parameters():
+                target_num += torch.numel(module)
+        else:
+            for name, module in net.named_parameters():
+                if name in train_layer:
+                    target_num += torch.numel(module)
         params_num = torch.squeeze(param).shape[0] 
         assert (target_num == params_num)
         param = torch.squeeze(param)
@@ -60,65 +120,30 @@ class CogTask(BaseTask):
         total = 0
 
         output_list = []
+        criterion = nn.CrossEntropyLoss()
 
         with torch.no_grad():
-            for data, target in self.test_loader:
+            for _ in range(self.cfg.test_batch):
+                data, target = self.test_loader()
+                data = torch.tensor(data).to(torch.float)
+                target = torch.tensor(target.flatten()).to(torch.int64)
                 data, target = data.cuda(), target.cuda()
-                output = model(data)
-                #TODO: dataype?
-                # target = target.to(torch.float)
+
+                for name, param in model.named_parameters():
+                    param = param.float()
+
+                output = model(data).to(torch.float)
                 # sum up batch loss
-                test_loss += F.cross_entropy(output,
-                                             target, size_average=False).item()
+                test_loss += criterion(output.view(-1, self.cfg.param.act_size), target)
 
                 total += data.shape[0]
-                pred = torch.max(output, 1)[1]
+                pred = torch.max(output, -1)[1]
                 output_list += pred.cpu().numpy().tolist()
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
         test_loss /= total
         acc = 100. * correct / total
-        del model
-        return acc, test_loss, output_list
-
-
-
-    def val_g_model(self, input):
-        net = self.model
-        train_layer = self.train_layer
-        param = input
-        target_num = 0
-        for name, module in net.named_parameters():
-            if name in train_layer:
-                target_num += torch.numel(module)
-        params_num = torch.squeeze(param).shape[0]  # + 30720
-        assert (target_num == params_num)
-        param = torch.squeeze(param)
-        model = partial_reverse_tomodel(
-            param, net, train_layer).to(param.device)
-
-        model.eval()
-        test_loss = 0
-        correct = 0
-        total = 0
-
-        output_list = []
-
-        with torch.no_grad():
-            for data, target in self.test_loader:
-                data, target = data.cuda(), target.cuda()
-                output = model(data)
-
-                test_loss += F.cross_entropy(output,
-                                             target, size_average=False).item()
-
-                total += data.shape[0]
-                pred = torch.max(output, 1)[1]
-                output_list += pred.cpu().numpy().tolist()
-                correct += pred.eq(target.view_as(pred)).sum().item()
-
-        test_loss /= total
-        acc = 100. * correct / total
+        print(f'Test accuracy: {acc}')
         del model
         return acc, test_loss, output_list
 
@@ -146,7 +171,7 @@ class CogTask(BaseTask):
                 pdata.append(param)
             
             log = os.path.join(self.cfg.param.perf_path, f'hidden_32_seed_{seed}_eval.csv')
-            save_model_accs.append(pd.read_csv(log)['perf'].to_list())
+            save_model_accs.extend(pd.read_csv(log)['perf'].to_list())
 
         batch = torch.stack(pdata)
         mean = torch.mean(batch, dim=0)
@@ -172,8 +197,7 @@ class CogTask(BaseTask):
             'performance': list(save_model_accs)
 
         }
-        print(np.shape(batch))
-        print(np.shape(save_model_accs))
+        print(f'Network ckpts size: {np.shape(batch)}')
         json.dump(json_state, open(
             os.path.join(final_path, "config.json"), 'w'))
 

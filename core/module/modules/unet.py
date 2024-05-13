@@ -580,7 +580,9 @@ class AE_CNN_bottleneck(nn.Module):
         self.time_encode = nn.Embedding(time_step, self.real_input_dim)
 
     def forward(self, input, time, cond=None):
-        assert input.shape[1] * input.shape[2] == self.in_dim
+        # print(f'input shape: {input.shape}')
+        # print(f'in dim: {self.in_dim}')
+        # assert input.shape[1] * input.shape[2] == self.in_dim
 
         input_shape = input.shape
         input = input.reshape(input.shape[0], 1, -1)
@@ -591,7 +593,7 @@ class AE_CNN_bottleneck(nn.Module):
         if len(input.size()) == 2:
             input = input.view(input.size(0), 1, -1)
 
-        input = input
+        input = input.float()
         # input = torch.cat(
         #     [
         #         input,
@@ -604,6 +606,7 @@ class AE_CNN_bottleneck(nn.Module):
         # )
         # import pdb; pdb.set_trace()
         # time_info = torch.cat([time_info, torch.zeros(time_info.shape[0],1,6).to(time_info.device) ], dim=2)
+
         emb_enc1 = self.enc1(input + time_info)
         emb_enc2 = self.enc2(emb_enc1 + time_info)
         emb_enc3 = self.enc3(emb_enc2 + time_info)
